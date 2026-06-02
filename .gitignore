@@ -1,0 +1,12 @@
+/node_modules
+/.next
+/out
+/build
+.DS_Store
+*.pem
+npm-debug.log*
+.env*.local
+.vercel
+
+# Uploaded product photos (runtime user content)
+/public/uploads
