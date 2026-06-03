@@ -1,6 +1,6 @@
 export default function BrandPanel() {
   return (
-    <div className="relative hidden lg:flex flex-col justify-between w-1/2 bg-slate-950 text-white p-12 overflow-hidden">
+    <div className="relative hidden lg:flex lg:sticky lg:top-0 lg:h-screen flex-col justify-between w-1/2 bg-slate-950 text-white p-12 overflow-hidden">
       {/* Decorative glows */}
       <div className="pointer-events-none absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-600/20 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 right-0 w-96 h-96 rounded-full bg-indigo-600/20 blur-3xl" />

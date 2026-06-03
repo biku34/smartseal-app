@@ -44,7 +44,7 @@ const UserSchema = new mongoose.Schema(
     // Role / lifecycle
     role: {
       type: String,
-      enum: ["manufacturer", "distributor", "retailer", "admin"],
+      enum: ["manufacturer", "distributor", "logistics", "retailer", "admin"],
       default: "manufacturer",
     },
     stage: {

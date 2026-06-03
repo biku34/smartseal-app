@@ -8,12 +8,15 @@ export const runtime = "nodejs";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const STAGE_BY_ROLE = {
-  manufacturer: "Manufacturer",
-  distributor: "Distributor",
-  retailer: "Retailer",
-  admin: "Admin",
+// Roles a user may self-register as (admin/retailer are provisioned elsewhere).
+const ROLE_META = {
+  manufacturer: { stage: "Manufacturer", prefix: "MFG" },
+  distributor: { stage: "Distributor", prefix: "DST" },
+  logistics: { stage: "Logistics Partner", prefix: "LGP" },
 };
+
+// Map an id prefix back to its role (for sequential id counting).
+const ROLE_BY_PREFIX = { MFG: "manufacturer", DST: "distributor", LGP: "logistics" };
 
 const pad = (n, w) => String(n).padStart(w, "0");
 
@@ -22,7 +25,7 @@ function escapeRegex(s) {
 }
 
 /** Reuse an existing org's id when the org name already exists, else mint a new one. */
-async function resolveOrgId(orgName) {
+async function resolveOrgId(orgName, prefix) {
   const existing = await User.findOne({
     orgName: new RegExp(`^${escapeRegex(orgName)}$`, "i"),
   })
@@ -31,22 +34,22 @@ async function resolveOrgId(orgName) {
   if (existing?.orgId) return existing.orgId;
 
   const orgIds = await User.distinct("orgId");
-  let seq = orgIds.length;
+  let seq = orgIds.filter((id) => String(id).startsWith(`ORG-${prefix}-`)).length;
   let orgId;
   do {
     seq += 1;
-    orgId = `ORG-MFG-${pad(seq, 2)}`;
+    orgId = `ORG-${prefix}-${pad(seq, 2)}`;
   } while (orgIds.includes(orgId));
   return orgId;
 }
 
-/** Sequential, collision-checked user id like USR-MFG-001. */
-async function generateUserId() {
-  let seq = await User.countDocuments();
+/** Sequential, collision-checked user id like USR-MFG-001 / USR-DST-001 / USR-LGP-001. */
+async function generateUserId(prefix) {
+  let seq = await User.countDocuments({ role: ROLE_BY_PREFIX[prefix] || "manufacturer" });
   let userId;
   do {
     seq += 1;
-    userId = `USR-MFG-${pad(seq, 3)}`;
+    userId = `USR-${prefix}-${pad(seq, 3)}`;
     // eslint-disable-next-line no-await-in-loop
   } while (await User.exists({ userId }));
   return userId;
@@ -60,6 +63,9 @@ export async function POST(req) {
     const username = String(body.username || "").trim().toLowerCase();
     const orgName = String(body.orgName || "").trim();
     const password = String(body.password || "");
+    // Role chosen at sign-up (manufacturer | distributor); defaults to manufacturer.
+    let role = String(body.role || "manufacturer").trim().toLowerCase();
+    if (!ROLE_META[role]) role = "manufacturer";
 
     // --- Validation ---
     if (!name || !email || !username || !orgName || !password) {
@@ -106,11 +112,10 @@ export async function POST(req) {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    // --- Auto-assigned fields (role/stage/active are NOT taken from the client) ---
-    const role = "manufacturer";
-    const stage = STAGE_BY_ROLE[role];
-    const orgId = await resolveOrgId(orgName);
-    const userId = await generateUserId();
+    // --- Auto-assigned fields ---
+    const { stage, prefix } = ROLE_META[role];
+    const orgId = await resolveOrgId(orgName, prefix);
+    const userId = await generateUserId(prefix);
 
     const user = await User.create({
       userId,
@@ -158,7 +163,6 @@ export async function POST(req) {
     return res;
   } catch (err) {
     console.error("[register] error:", err);
-    // Duplicate key safety net (unique index race).
     if (err?.code === 11000) {
       return NextResponse.json(
         { error: "That username or email is already registered." },

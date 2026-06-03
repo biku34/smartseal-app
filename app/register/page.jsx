@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [orgName, setOrgName] = useState("");
+  const [role, setRole] = useState("manufacturer");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +31,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, orgName, username, password }),
+        body: JSON.stringify({ name, email, orgName, username, password, role }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -178,16 +179,32 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Role notice — fixed to manufacturer for now */}
-            <div className="flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-3 text-xs text-slate-500">
-              <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>
-                Your account starts with the{" "}
-                <span className="font-semibold text-slate-700">Manufacturer</span> role. A unique
-                user ID and organization ID are assigned automatically.
-              </span>
+            {/* Role selector */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-600">I am a</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  ["manufacturer", "Manufacturer"],
+                  ["distributor", "Distributor"],
+                  ["logistics", "Logistics"],
+                ].map(([val, label]) => (
+                  <button
+                    type="button"
+                    key={val}
+                    onClick={() => setRole(val)}
+                    className={`rounded-xl border px-3.5 py-3 text-sm font-semibold transition ${
+                      role === val
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-400">
+                A unique user ID and organization ID are assigned automatically for your role.
+              </p>
             </div>
 
             <button
